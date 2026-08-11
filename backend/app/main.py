@@ -1,7 +1,16 @@
+import logging
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from app.services.evaluator import evaluate_essay
+
+load_dotenv()
+
+if not os.getenv("OPENAI_API_KEY"):
+    logging.getLogger(__name__).warning("OPENAI_API_KEY is not set. AI features will not work.")
 
 app = FastAPI(
     title="IELTS Band 8 API",
