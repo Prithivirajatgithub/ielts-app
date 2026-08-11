@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from app.services.evaluator import evaluate_essay
+
 app = FastAPI(
     title="IELTS Band 8 API",
     version="0.1.0",
@@ -46,15 +48,25 @@ def health():
 
 
 @app.post("/api/v1/evaluate-essay", response_model=EssayResponse)
-def evaluate_essay(request: EssayRequest):
-    # TODO: call OpenAI to score the essay against the IELTS band descriptors.
+async def evaluate_essay_endpoint(request: EssayRequest):
+    result = await evaluate_essay(essay_text=request.essay, topic=request.question)
+
+    scores = result["criteria_scores"]
+    strengths = "\n".join(f"- {s}" for s in result["strengths"])
+    improvements = "\n".join(f"- {i}" for i in result["key_improvements"])
+    feedback = (
+        f"Strengths:\n{strengths}\n\n"
+        f"Key improvements:\n{improvements}\n\n"
+        f"Band 8 rewrite:\n{result['band_8_rewrite']}"
+    )
+
     return EssayResponse(
-        task_response=0.0,
-        coherence_and_cohesion=0.0,
-        lexical_resource=0.0,
-        grammatical_range_and_accuracy=0.0,
-        overall_band=0.0,
-        feedback="Not yet implemented.",
+        task_response=scores["task_response"],
+        coherence_and_cohesion=scores["coherence_and_cohesion"],
+        lexical_resource=scores["lexical_resource"],
+        grammatical_range_and_accuracy=scores["grammatical_range_and_accuracy"],
+        overall_band=result["overall_band"],
+        feedback=feedback,
     )
 
 
