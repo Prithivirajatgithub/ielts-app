@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app.services.evaluator import evaluate_essay
@@ -15,6 +16,14 @@ if not os.getenv("OPENAI_API_KEY"):
 app = FastAPI(
     title="IELTS Band 8 API",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
