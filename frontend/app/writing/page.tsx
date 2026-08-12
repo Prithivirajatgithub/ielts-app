@@ -158,7 +158,7 @@ export default function WritingPracticePage() {
     setParsed(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/evaluate-essay", {
+      const res = await fetch("http://127.0.0.1:8000/api/v1/evaluate-essay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: prompt, essay }),
@@ -321,9 +321,7 @@ export default function WritingPracticePage() {
             disabled={loading}
             className="rounded-full bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-black"
           >
-            {loading
-              ? "Evaluating..."
-              : "Submit for Band 8 Evaluation"}
+            {loading ? "Evaluating..." : "Submit"}
           </button>
           {result && (
             <button
