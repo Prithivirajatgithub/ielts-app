@@ -212,10 +212,9 @@ export default function ListeningPracticePage() {
     }
   };
 
-  const audioSrc = useMemo(() => {
-    if (!selectedTestId) return null;
-    return `${API_BASE}/api/v1/listening/audio/${selectedTestId}?t=${Date.now()}`;
-  }, [selectedTestId]);
+  const audioSrc = selectedTestId
+    ? `${API_BASE}/api/v1/listening/audio/${selectedTestId}`
+    : null;
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">

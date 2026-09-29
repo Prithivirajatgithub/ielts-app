@@ -2,15 +2,17 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.services.evaluator import (
     evaluate_essay,
     evaluate_speaking_audio,
     evaluate_task1_essay,
+    generate_task1_prompt,
+    generate_task2_prompt,
 )
 from app.services.listening import grade_test, list_tests_public, synthesize_test_audio
 
@@ -23,6 +25,7 @@ app = FastAPI(
     title="IELTS Band 8 API",
     version="0.1.0",
 )
+
 origins = [
     "https://ielts-app-mu-peach.vercel.app",
     "http://localhost:3000",
@@ -36,6 +39,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logging.getLogger(__name__).error(f"Global error on {request.url.path}: {exc}", exc_info=True)
+    response = JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
+    origin = request.headers.get("origin")
+    if origin in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 
 class EssayRequest(BaseModel):
@@ -158,9 +175,57 @@ def health():
     return {"status": "ok"}
 
 
+class Task2PromptResponse(BaseModel):
+    id: str
+    text: str
+
+
+class Task1Series(BaseModel):
+    dataKey: str
+    name: str
+    color: str
+    unit: str = ""
+
+
+class Task1PromptResponse(BaseModel):
+    id: str
+    title: str
+    subtitle: str = ""
+    chartType: str = "bar"
+    xAxisKey: str = "category"
+    series: list[Task1Series] = []
+    data: list[dict[str, str | float | int]] = []
+    question: str
+    chart_data_description: str = ""
+
+
+@app.post("/api/v1/generate-prompt", response_model=Task2PromptResponse)
+async def generate_prompt_endpoint(
+    x_gemini_api_key: str | None = Header(default=None),
+):
+    api_key = x_gemini_api_key.strip() if x_gemini_api_key and x_gemini_api_key.strip() else None
+    return await generate_task2_prompt(api_key=api_key)
+
+
+@app.post("/api/v1/generate-task1-prompt", response_model=Task1PromptResponse)
+async def generate_task1_prompt_endpoint(
+    x_gemini_api_key: str | None = Header(default=None),
+):
+    api_key = x_gemini_api_key.strip() if x_gemini_api_key and x_gemini_api_key.strip() else None
+    return await generate_task1_prompt(api_key=api_key)
+
+
 @app.post("/api/v1/evaluate-essay", response_model=EssayResponse)
-async def evaluate_essay_endpoint(request: EssayRequest):
-    result = await evaluate_essay(essay_text=request.essay, topic=request.question)
+async def evaluate_essay_endpoint(
+    request: EssayRequest,
+    x_gemini_api_key: str | None = Header(default=None),
+):
+    api_key = x_gemini_api_key.strip() if x_gemini_api_key and x_gemini_api_key.strip() else None
+    result = await evaluate_essay(
+        essay_text=request.essay,
+        topic=request.question,
+        api_key=api_key,
+    )
 
     scores = result["criteria_scores"]
     strengths = "\n".join(f"- {s}" for s in result["strengths"])
@@ -182,11 +247,16 @@ async def evaluate_essay_endpoint(request: EssayRequest):
 
 
 @app.post("/api/v1/evaluate-task1", response_model=Task1Response)
-async def evaluate_task1_endpoint(request: Task1Request):
+async def evaluate_task1_endpoint(
+    request: Task1Request,
+    x_gemini_api_key: str | None = Header(default=None),
+):
+    api_key = x_gemini_api_key.strip() if x_gemini_api_key and x_gemini_api_key.strip() else None
     result = await evaluate_task1_essay(
         essay_text=request.essay,
         question=request.question,
         chart_data_description=request.chart_data_description,
+        api_key=api_key,
     )
 
     scores = result["criteria_scores"]
@@ -212,12 +282,15 @@ async def evaluate_task1_endpoint(request: Task1Request):
 async def evaluate_speaking_endpoint(
     audio: UploadFile = File(...),
     topic: str = Form(...),
+    x_gemini_api_key: str | None = Header(default=None),
 ):
+    api_key = x_gemini_api_key.strip() if x_gemini_api_key and x_gemini_api_key.strip() else None
     audio_bytes = await audio.read()
     result = await evaluate_speaking_audio(
         audio_bytes=audio_bytes,
         mime_type=audio.content_type or "audio/webm",
         topic=topic,
+        api_key=api_key,
     )
     return result
 
@@ -234,7 +307,7 @@ def get_listening_audio(test_id: str):
     except KeyError:
         raise HTTPException(status_code=404, detail="Unknown listening test")
     except Exception as exc:
-        logger.error("Could not synthesize audio for %s: %s", test_id, exc)
+        logging.getLogger(__name__).error("Could not synthesize audio for %s: %s", test_id, exc)
         raise HTTPException(status_code=500, detail="Could not synthesize audio")
 
     extension = "mp3" if media_type == "audio/mpeg" else "wav"

@@ -13,11 +13,27 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ApiKeyModal from "../../components/ApiKeyModal";
 import TaskNav from "../task-nav";
 import { TASK1_PROMPTS, type Task1Prompt } from "./prompts";
 
 const EXAM_DURATION = 20 * 60;
 const MIN_WORDS = 150;
+
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const savedKey = localStorage.getItem("custom_gemini_api_key");
+  if (savedKey) {
+    headers["x-gemini-api-key"] = savedKey;
+  }
+  return headers;
+}
+
+function apiBase() {
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+}
 
 function renderChart(prompt: Task1Prompt) {
   const formatter = (value: unknown, name: unknown) => {
@@ -164,6 +180,7 @@ function barColor(score: number) {
 }
 
 export default function Task1WritingPage() {
+  const [promptsList, setPromptsList] = useState<Task1Prompt[]>(TASK1_PROMPTS);
   const [activePromptId, setActivePromptId] = useState(TASK1_PROMPTS[0].id);
   const [essay, setEssay] = useState("");
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
@@ -171,10 +188,13 @@ export default function Task1WritingPage() {
   const [result, setResult] = useState<Task1Evaluation | null>(null);
   const [parsed, setParsed] = useState<ParsedFeedback | null>(null);
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const activePrompt =
-    TASK1_PROMPTS.find((p) => p.id === activePromptId) ?? TASK1_PROMPTS[0];
+  const activePrompt = useMemo(
+    () => promptsList.find((p) => p.id === activePromptId) ?? promptsList[0],
+    [promptsList, activePromptId],
+  );
 
   const handlePromptChange = (id: string) => {
     setActivePromptId(id);
@@ -216,6 +236,50 @@ export default function Task1WritingPage() {
     resetTimer();
   };
 
+  const handleGenerateNewTask1 = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const res = await fetch(`${apiBase()}/api/v1/generate-task1-prompt`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Could not generate a chart (${res.status}): ${body}`);
+      }
+
+      const data: Task1Prompt = await res.json();
+      if (!data?.id || !Array.isArray(data.data) || data.data.length === 0) {
+        throw new Error("The generator returned an invalid chart. Please try again.");
+      }
+
+      const newPrompt: Task1Prompt = {
+        ...data,
+        id: data.id.trim() || `generated-${Date.now()}`,
+        chartType: data.chartType === "line" ? "line" : "bar",
+        xAxisKey: data.xAxisKey || "category",
+        series: Array.isArray(data.series) ? data.series : [],
+      };
+
+      setPromptsList((prev) => [newPrompt, ...prev]);
+      setActivePromptId(newPrompt.id);
+      setEssay("");
+      setResult(null);
+      setParsed(null);
+      resetTimer();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (essay.trim().split(/\s+/).length < MIN_WORDS) {
       setError(`Please write at least ${MIN_WORDS} words before submitting.`);
@@ -228,10 +292,9 @@ export default function Task1WritingPage() {
     setParsed(null);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      const res = await fetch(`${apiBase}/api/v1/evaluate-task1`, {
+      const res = await fetch(`${apiBase()}/api/v1/evaluate-task1`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           question: activePrompt.question,
           essay,
@@ -263,14 +326,17 @@ export default function Task1WritingPage() {
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
         <TaskNav active="task1" />
 
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            IELTS Writing Task 1
-          </h1>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-            Graphs &amp; Charts — summarise the chart, keep an eye on the clock,
-            and submit for a Band 8 evaluation.
-          </p>
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+              IELTS Writing Task 1
+            </h1>
+            <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+              Graphs &amp; Charts — summarise the chart, keep an eye on the clock,
+              and submit for a Band 8 evaluation.
+            </p>
+          </div>
+          <ApiKeyModal />
         </header>
 
         <section className="flex flex-col gap-8 lg:flex-row lg:items-start">
@@ -285,20 +351,30 @@ export default function Task1WritingPage() {
                     {activePrompt.subtitle}
                   </p>
                 </div>
-                <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  Chart
-                  <select
-                    value={activePromptId}
-                    onChange={(e) => handlePromptChange(e.target.value)}
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                <div className="flex flex-col items-end gap-2">
+                  <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    Chart
+                    <select
+                      value={activePromptId}
+                      onChange={(e) => handlePromptChange(e.target.value)}
+                      className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                    >
+                      {promptsList.map((prompt) => (
+                        <option key={prompt.id} value={prompt.id}>
+                          {prompt.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateNewTask1}
+                    disabled={generating}
+                    className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900"
                   >
-                    {TASK1_PROMPTS.map((prompt) => (
-                      <option key={prompt.id} value={prompt.id}>
-                        {prompt.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    {generating ? "Generating..." : "+ New Chart"}
+                  </button>
+                </div>
               </div>
               <div className="h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">

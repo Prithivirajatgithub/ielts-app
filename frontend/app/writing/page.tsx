@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ApiKeyModal from "../components/ApiKeyModal";
 import TaskNav from "./task-nav";
 
 const EXAM_DURATION = 40 * 60;
 
-const PROMPTS = [
+interface PromptItem {
+  id: string;
+  text: string;
+  generated?: boolean;
+}
+
+const DEFAULT_PROMPTS: PromptItem[] = [
   {
     id: "community-service",
     text: "Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?",
@@ -94,8 +101,24 @@ function barColor(score: number) {
   return "bg-rose-500";
 }
 
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const savedKey = localStorage.getItem("custom_gemini_api_key");
+  if (savedKey) {
+    headers["x-gemini-api-key"] = savedKey;
+  }
+  return headers;
+}
+
+function apiBase() {
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+}
+
 export default function WritingPracticePage() {
-  const [selectedPrompt, setSelectedPrompt] = useState(PROMPTS[0].id);
+  const [prompts, setPrompts] = useState<PromptItem[]>(DEFAULT_PROMPTS);
+  const [selectedPrompt, setSelectedPrompt] = useState(DEFAULT_PROMPTS[0].id);
   const [customPrompt, setCustomPrompt] = useState("");
   const [essay, setEssay] = useState("");
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
@@ -103,12 +126,13 @@ export default function WritingPracticePage() {
   const [result, setResult] = useState<EssayEvaluation | null>(null);
   const [parsed, setParsed] = useState<ParsedFeedback | null>(null);
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const prompt = useMemo(() => {
-    const selected = PROMPTS.find((p) => p.id === selectedPrompt);
+    const selected = prompts.find((p) => p.id === selectedPrompt);
     return selected?.id === "custom" ? customPrompt : selected?.text ?? "";
-  }, [selectedPrompt, customPrompt]);
+  }, [prompts, selectedPrompt, customPrompt]);
 
   const wordCount = useMemo(
     () => (essay.trim() ? essay.trim().split(/\s+/).length : 0),
@@ -143,6 +167,49 @@ export default function WritingPracticePage() {
     resetTimer();
   };
 
+  const handleGenerateNewPrompt = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const res = await fetch(`${apiBase()}/api/v1/generate-prompt`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Could not generate a question (${res.status}): ${body}`);
+      }
+
+      const data: { id?: string; text?: string } = await res.json();
+      const text = (data.text ?? "").trim();
+      if (!text) {
+        throw new Error("The generator returned an empty question. Please try again.");
+      }
+
+      const newPrompt: PromptItem = {
+        id: data.id?.trim() || `generated-${Date.now()}`,
+        text,
+        generated: true,
+      };
+
+      setPrompts((prev) => [...prev, newPrompt]);
+      setSelectedPrompt(newPrompt.id);
+      setResult(null);
+      setParsed(null);
+      setEssay("");
+      resetTimer();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!prompt.trim()) {
       setError("Please choose a prompt or enter your own essay question.");
@@ -159,10 +226,9 @@ export default function WritingPracticePage() {
     setParsed(null);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      const res = await fetch(`${apiBase}/api/v1/evaluate-essay`, {
+      const res = await fetch(`${apiBase()}/api/v1/evaluate-essay`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ question: prompt, essay }),
       });
 
@@ -190,14 +256,17 @@ export default function WritingPracticePage() {
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
         <TaskNav active="task2" />
 
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            IELTS Writing Practice
-          </h1>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-            Task 2 Essay — type your response, keep an eye on the clock, and
-            submit for a Band 8 evaluation.
-          </p>
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+              IELTS Writing Practice
+            </h1>
+            <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+              Task 2 Essay — type your response, keep an eye on the clock, and
+              submit for a Band 8 evaluation.
+            </p>
+          </div>
+          <ApiKeyModal />
         </header>
 
         <section className="flex flex-col gap-8 lg:flex-row lg:items-start">
@@ -212,20 +281,34 @@ export default function WritingPracticePage() {
               >
                 Choose a Task 2 prompt
               </label>
-              <select
-                id="prompt-select"
-                value={selectedPrompt}
-                onChange={(e) => setSelectedPrompt(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
-              >
-                {PROMPTS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.id === "custom"
-                      ? "Enter your own prompt..."
-                      : `Prompt ${PROMPTS.indexOf(p) + 1}`}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <select
+                  id="prompt-select"
+                  value={selectedPrompt}
+                  onChange={(e) => setSelectedPrompt(e.target.value)}
+                  className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                >
+                  {prompts.map((p, index) => (
+                    <option key={p.id} value={p.id}>
+                      {p.id === "custom"
+                        ? "Enter your own prompt..."
+                        : p.generated
+                          ? `New: ${p.text.slice(0, 60)}${p.text.length > 60 ? "..." : ""}`
+                          : `Prompt ${index + 1}`}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleGenerateNewPrompt}
+                  disabled={generating}
+                  className="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900"
+                >
+                  {generating
+                    ? "Generating..."
+                    : "+ Generate New IELTS Question"}
+                </button>
+              </div>
 
               {selectedPrompt === "custom" ? (
                 <textarea

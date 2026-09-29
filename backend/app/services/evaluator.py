@@ -143,14 +143,15 @@ Guidance for each field:
 """
 
 
-async def evaluate_essay(essay_text: str, topic: str) -> dict:
+async def evaluate_essay(essay_text: str, topic: str, api_key: str | None = None) -> dict:
     prompt = (
         f"{SYSTEM_PROMPT}\n\n"
         f"Essay topic: {topic}\n\n"
         f"Candidate's essay:\n{essay_text}"
     )
 
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    key_to_use = api_key or os.getenv("GEMINI_API_KEY")
+    client = genai.Client(api_key=key_to_use)
 
     try:
         response = client.models.generate_content(
@@ -203,13 +204,16 @@ Guidance for each field:
 """
 
 
-async def evaluate_speaking_audio(audio_bytes: bytes, mime_type: str, topic: str) -> dict:
+async def evaluate_speaking_audio(
+    audio_bytes: bytes, mime_type: str, topic: str, api_key: str | None = None
+) -> dict:
     prompt = (
         f"{SPEAKING_SYSTEM_PROMPT}\n\n"
         f"Cue card topic: {topic}"
     )
 
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    key_to_use = api_key or os.getenv("GEMINI_API_KEY")
+    client = genai.Client(api_key=key_to_use)
 
     try:
         response = client.models.generate_content(
@@ -230,7 +234,7 @@ async def evaluate_speaking_audio(audio_bytes: bytes, mime_type: str, topic: str
 
 
 async def evaluate_task1_essay(
-    essay_text: str, question: str, chart_data_description: str
+    essay_text: str, question: str, chart_data_description: str, api_key: str | None = None
 ) -> dict:
     prompt = (
         f"{TASK1_SYSTEM_PROMPT}\n\n"
@@ -239,7 +243,8 @@ async def evaluate_task1_essay(
         f"Candidate's essay:\n{essay_text}"
     )
 
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    key_to_use = api_key or os.getenv("GEMINI_API_KEY")
+    client = genai.Client(api_key=key_to_use)
 
     try:
         response = client.models.generate_content(
@@ -249,6 +254,79 @@ async def evaluate_task1_essay(
         )
     except Exception as exc:
         logger.exception("Gemini Task 1 evaluation failed: %s", exc)
+        raise
+
+    return _extract_json(response.text)
+
+TASK1_GENERATOR_PROMPT = """\
+You are an official Cambridge IELTS Task 1 test creator.
+Generate ONE realistic Academic IELTS Writing Task 1 visual report prompt (either a 'line' chart or a 'bar' chart).
+
+Return ONLY valid JSON matching this exact structure:
+{
+  "id": "unique-slug-id",
+  "title": "Short title describing the visual (e.g. Electricity Production by Source)",
+  "subtitle": "Subtitle with unit and timeframe (e.g. TWh, 2010-2020)",
+  "chartType": "bar",
+  "xAxisKey": "category",
+  "series": [
+    {"dataKey": "metric1", "name": "Series 1 Name", "color": "#6366f1", "unit": "units"},
+    {"dataKey": "metric2", "name": "Series 2 Name", "color": "#10b981", "unit": "units"}
+  ],
+  "data": [
+    {"category": "Year/Group 1", "metric1": 120, "metric2": 85},
+    {"category": "Year/Group 2", "metric1": 140, "metric2": 95},
+    {"category": "Year/Group 3", "metric1": 170, "metric2": 110}
+  ],
+  "question": "The chart below shows... Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+  "chart_data_description": "A comprehensive factual breakdown describing the trends, key highs, lows, and numbers shown in this chart so the examiner can evaluate accuracy."
+}
+
+Rules:
+- "chartType" must be strictly either "bar" or "line".
+- Include 3 to 5 categories in the "data" array.
+- Include 2 to 3 series metrics with distinct hex colors (e.g. #6366f1, #10b981, #f59e0b).
+- Provide a clear, detailed "chart_data_description" so the evaluation model knows the exact ground truth.
+"""
+
+async def generate_task1_prompt(api_key: str | None = None) -> dict:
+    key_to_use = api_key or os.getenv("GEMINI_API_KEY")
+    client = genai.Client(api_key=key_to_use)
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-3.5-flash-lite",
+            contents=TASK1_GENERATOR_PROMPT,
+            config={"response_mime_type": "application/json"},
+        )
+    except Exception as exc:
+        logger.exception("Failed to generate Task 1 prompt: %s", exc)
+        raise
+
+    return _extract_json(response.text)
+
+async def generate_task2_prompt(api_key: str | None = None) -> dict:
+    system_instruction = """\
+You are an official Cambridge IELTS question writer.
+Generate ONE realistic, authentic IELTS Academic Writing Task 2 prompt across common IELTS themes (e.g., Education, Environment, Globalization, Work & Careers, Culture, Urbanization, Health).
+
+Return ONLY valid JSON with this exact schema, no markdown code blocks:
+{
+  "id": "short-slug-name",
+  "text": "The full IELTS prompt question text (including instructions like 'To what extent do you agree or disagree?' or 'Discuss both views and give your opinion.')."
+}
+"""
+    key_to_use = api_key or os.getenv("GEMINI_API_KEY")
+    client = genai.Client(api_key=key_to_use)
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-3.5-flash-lite",
+            contents=system_instruction,
+            config={"response_mime_type": "application/json"},
+        )
+    except Exception as exc:
+        logger.exception("Failed to generate Task 2 prompt: %s", exc)
         raise
 
     return _extract_json(response.text)
