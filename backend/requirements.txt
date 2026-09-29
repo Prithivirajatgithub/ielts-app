@@ -1,5 +1,9 @@
 fastapi
+python-multipart
 uvicorn[standard]
 google-genai
 pydantic
 python-dotenv
+edge-tts
+gTTS
+httpx
