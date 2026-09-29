@@ -213,7 +213,7 @@ async def evaluate_speaking_audio(audio_bytes: bytes, mime_type: str, topic: str
 
     try:
         response = client.models.generate_content(
-            model="gemini-3.5-flash",
+            model="gemini-3.5-flash-lite",
             contents=[
                 types.Part(text=prompt),
                 types.Part(
@@ -243,7 +243,7 @@ async def evaluate_task1_essay(
 
     try:
         response = client.models.generate_content(
-            model="gemini-3.5-flash",
+            model="gemini-3.5-flash-lite",
             contents=prompt,
             config={"response_mime_type": "application/json"},
         )
