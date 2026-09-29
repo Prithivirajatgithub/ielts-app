@@ -1,9 +1,39 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+        <nav className="flex w-full items-center gap-4 rounded-full border border-zinc-200 px-2 py-2 shadow-sm dark:border-zinc-800">
+          <span className="pl-4 text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+            Practice:
+          </span>
+          <Link
+            href="/writing/task1"
+            className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+          >
+            Task 1 (Charts)
+          </Link>
+          <Link
+            href="/writing"
+            className="rounded-full px-5 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            Task 2 (Essay)
+          </Link>
+          <Link
+            href="/speaking"
+            className="rounded-full px-5 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            Speaking
+          </Link>
+          <Link
+            href="/listening"
+            className="rounded-full px-5 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            Listening
+          </Link>
+        </nav>
         <Image
           className="dark:invert h-5 w-[100px]"
           src="/next.svg"

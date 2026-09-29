@@ -1,42 +1,111 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import TaskNav from "./task-nav";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import TaskNav from "../task-nav";
+import { TASK1_PROMPTS, type Task1Prompt } from "./prompts";
 
-const EXAM_DURATION = 40 * 60;
+const EXAM_DURATION = 20 * 60;
+const MIN_WORDS = 150;
 
-const PROMPTS = [
-  {
-    id: "community-service",
-    text: "Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?",
-  },
-  {
-    id: "longer-life",
-    text: "In many countries, people are living longer than ever before. Some people think this has benefits for society, while others believe it creates significant problems. Discuss both views and give your own opinion.",
-  },
-  {
-    id: "crime",
-    text: "Some people think that the best way to reduce crime is to impose longer prison sentences, while others believe there are better alternatives. Discuss both views and give your opinion.",
-  },
-  {
-    id: "technology",
-    text: "Nowadays, technology is increasingly used to monitor what people are saying and doing (for example, through mobile phones and CCTV). Is this a positive or negative development?",
-  },
-  {
-    id: "custom",
-    text: "",
-  },
-];
+function renderChart(prompt: Task1Prompt) {
+  const formatter = (value: unknown, name: unknown) => {
+    const series = prompt.series.find((s) => s.name === name);
+    const num = Number(value);
+    const formatted = Number.isInteger(num) ? String(num) : num.toFixed(1);
+    return `${formatted} ${series?.unit ?? ""}`.trim();
+  };
+
+  const common = (
+    <>
+      <CartesianGrid
+        strokeDasharray="3 3"
+        stroke="currentColor"
+        className="text-zinc-200 dark:text-zinc-700"
+      />
+      <XAxis
+        dataKey={prompt.xAxisKey}
+        stroke="currentColor"
+        className="text-xs text-zinc-500 dark:text-zinc-400"
+      />
+      <YAxis
+        stroke="currentColor"
+        className="text-xs text-zinc-500 dark:text-zinc-400"
+      />
+      <Tooltip
+        contentStyle={{
+          borderRadius: "0.5rem",
+          borderColor: "currentColor",
+          backgroundColor: "var(--background)",
+          color: "var(--foreground)",
+        }}
+        formatter={formatter}
+      />
+      <Legend />
+    </>
+  );
+
+  if (prompt.chartType === "line") {
+    return (
+      <LineChart
+        data={prompt.data}
+        margin={{ top: 8, right: 16, left: -8, bottom: 0 }}
+      >
+        {common}
+        {prompt.series.map((series) => (
+          <Line
+            key={series.dataKey}
+            type="monotone"
+            dataKey={series.dataKey}
+            name={series.name}
+            stroke={series.color}
+            strokeWidth={2.5}
+            dot={{ r: 3 }}
+          />
+        ))}
+      </LineChart>
+    );
+  }
+
+  return (
+    <BarChart
+      data={prompt.data}
+      margin={{ top: 8, right: 16, left: -8, bottom: 0 }}
+    >
+      {common}
+      {prompt.series.map((series) => (
+        <Bar
+          key={series.dataKey}
+          dataKey={series.dataKey}
+          name={series.name}
+          fill={series.color}
+          radius={[4, 4, 0, 0]}
+        />
+      ))}
+    </BarChart>
+  );
+}
 
 const CRITERIA = [
-  { key: "task_response", label: "Task Response" },
+  { key: "task_achievement", label: "Task Achievement" },
   { key: "coherence_and_cohesion", label: "Coherence & Cohesion" },
   { key: "lexical_resource", label: "Lexical Resource" },
   { key: "grammatical_range_and_accuracy", label: "Grammatical Accuracy" },
 ] as const;
 
-interface EssayEvaluation {
-  task_response: number;
+interface Task1Evaluation {
+  task_achievement: number;
   coherence_and_cohesion: number;
   lexical_resource: number;
   grammatical_range_and_accuracy: number;
@@ -94,21 +163,25 @@ function barColor(score: number) {
   return "bg-rose-500";
 }
 
-export default function WritingPracticePage() {
-  const [selectedPrompt, setSelectedPrompt] = useState(PROMPTS[0].id);
-  const [customPrompt, setCustomPrompt] = useState("");
+export default function Task1WritingPage() {
+  const [activePromptId, setActivePromptId] = useState(TASK1_PROMPTS[0].id);
   const [essay, setEssay] = useState("");
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
   const [timerRunning, setTimerRunning] = useState(false);
-  const [result, setResult] = useState<EssayEvaluation | null>(null);
+  const [result, setResult] = useState<Task1Evaluation | null>(null);
   const [parsed, setParsed] = useState<ParsedFeedback | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const prompt = useMemo(() => {
-    const selected = PROMPTS.find((p) => p.id === selectedPrompt);
-    return selected?.id === "custom" ? customPrompt : selected?.text ?? "";
-  }, [selectedPrompt, customPrompt]);
+  const activePrompt =
+    TASK1_PROMPTS.find((p) => p.id === activePromptId) ?? TASK1_PROMPTS[0];
+
+  const handlePromptChange = (id: string) => {
+    setActivePromptId(id);
+    setResult(null);
+    setParsed(null);
+    setError(null);
+  };
 
   const wordCount = useMemo(
     () => (essay.trim() ? essay.trim().split(/\s+/).length : 0),
@@ -144,12 +217,8 @@ export default function WritingPracticePage() {
   };
 
   const handleSubmit = async () => {
-    if (!prompt.trim()) {
-      setError("Please choose a prompt or enter your own essay question.");
-      return;
-    }
-    if (essay.trim().split(/\s+/).length < 50) {
-      setError("Please write at least 50 words before submitting.");
+    if (essay.trim().split(/\s+/).length < MIN_WORDS) {
+      setError(`Please write at least ${MIN_WORDS} words before submitting.`);
       return;
     }
 
@@ -159,10 +228,14 @@ export default function WritingPracticePage() {
     setParsed(null);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/evaluate-essay", {
+      const res = await fetch("http://127.0.0.1:8000/api/v1/evaluate-task1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: prompt, essay }),
+        body: JSON.stringify({
+          question: activePrompt.question,
+          essay,
+          chart_data_description: activePrompt.chart_data_description,
+        }),
       });
 
       if (!res.ok) {
@@ -170,7 +243,7 @@ export default function WritingPracticePage() {
         throw new Error(`Evaluation failed (${res.status}): ${body}`);
       }
 
-      const data: EssayEvaluation = await res.json();
+      const data: Task1Evaluation = await res.json();
       setResult(data);
       setParsed(parseFeedback(data.feedback));
     } catch (err) {
@@ -187,58 +260,59 @@ export default function WritingPracticePage() {
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
-        <TaskNav active="task2" />
+        <TaskNav active="task1" />
 
         <header>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            IELTS Writing Practice
+            IELTS Writing Task 1
           </h1>
           <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-            Task 2 Essay — type your response, keep an eye on the clock, and
-            submit for a Band 8 evaluation.
+            Graphs &amp; Charts — summarise the chart, keep an eye on the clock,
+            and submit for a Band 8 evaluation.
           </p>
         </header>
 
         <section className="flex flex-col gap-8 lg:flex-row lg:items-start">
           <div className="flex flex-1 flex-col gap-8">
             <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                Essay Prompt
-              </h2>
-              <label
-                htmlFor="prompt-select"
-                className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Choose a Task 2 prompt
-              </label>
-              <select
-                id="prompt-select"
-                value={selectedPrompt}
-                onChange={(e) => setSelectedPrompt(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
-              >
-                {PROMPTS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.id === "custom"
-                      ? "Enter your own prompt..."
-                      : `Prompt ${PROMPTS.indexOf(p) + 1}`}
-                  </option>
-                ))}
-              </select>
-
-              {selectedPrompt === "custom" ? (
-                <textarea
-                  value={customPrompt}
-                  onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder="Type or paste your own IELTS Task 2 essay question here..."
-                  rows={3}
-                  className="mt-4 w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
-                />
-              ) : (
-                <div className="mt-4 rounded-lg bg-zinc-100 px-4 py-3 text-sm leading-6 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
-                  {prompt}
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                    {activePrompt.title}
+                  </h2>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    {activePrompt.subtitle}
+                  </p>
                 </div>
-              )}
+                <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Chart
+                  <select
+                    value={activePromptId}
+                    onChange={(e) => handlePromptChange(e.target.value)}
+                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                  >
+                    {TASK1_PROMPTS.map((prompt) => (
+                      <option key={prompt.id} value={prompt.id}>
+                        {prompt.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  {renderChart(activePrompt)}
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                Task Question
+              </h2>
+              <p className="rounded-lg bg-zinc-100 px-4 py-3 text-sm leading-6 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                {activePrompt.question}
+              </p>
             </div>
 
             <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -277,7 +351,7 @@ export default function WritingPracticePage() {
               <textarea
                 value={essay}
                 onChange={(e) => handleEssayChange(e.target.value)}
-                placeholder="Write your essay here. Aim for 250-300 words in 40 minutes..."
+                placeholder="Write your Task 1 response here. Aim for at least 150 words in 20 minutes..."
                 rows={16}
                 className="w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
               />
@@ -309,9 +383,9 @@ export default function WritingPracticePage() {
                 {wordCount}
               </p>
               <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                {wordCount < 250
-                  ? `${250 - wordCount} more words to reach the 250 minimum.`
-                  : "Great — you've hit the 250-word minimum."}
+                {wordCount < MIN_WORDS
+                  ? `${MIN_WORDS - wordCount} more words to reach the ${MIN_WORDS}-word minimum.`
+                  : "Great — you've hit the 150-word minimum."}
               </p>
             </div>
           </aside>
@@ -349,7 +423,7 @@ export default function WritingPracticePage() {
         {loading && (
           <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Evaluating your essay...
+              Evaluating your Task 1 response...
             </p>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
               A strict IELTS examiner is scoring your response against the Band
@@ -446,8 +520,8 @@ export default function WritingPracticePage() {
                   Band 8 Sample Rewrite
                 </h3>
                 <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
-                  A rewritten version of your essay at Band 8 standard, keeping
-                  your position on the topic.
+                  A rewritten version of your response at Band 8 standard,
+                  covering the same key features.
                 </p>
                 <div className="rounded-lg bg-zinc-50 px-5 py-4 text-sm leading-7 text-zinc-800 dark:bg-zinc-950 dark:text-zinc-200">
                   {parsed.rewrite.split("\n").map((paragraph, i) =>

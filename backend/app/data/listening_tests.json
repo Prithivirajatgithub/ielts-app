@@ -1,0 +1,323 @@
+{
+  "tests": [
+    {
+      "id": "accommodation-inquiry",
+      "section": 1,
+      "title": "Accommodation Inquiry / University Housing Application",
+      "subtitle": "Section 1 — a conversation between a student, Maria, and a university housing officer about applying for university accommodation.",
+      "instructions": "You will hear a conversation between a student and a university housing officer. Answer questions 1-5 as you listen. The recording is played only once.",
+      "expected_duration_seconds": 70,
+      "speaker_voices": {
+        "Student": "Aoede",
+        "Agent": "Kore"
+      },
+      "speakers_config": {
+        "person_a": {
+          "speaker": "Student",
+          "description": "a young female student"
+        },
+        "person_b": {
+          "speaker": "Agent",
+          "description": "a male housing officer"
+        }
+      },
+      "edge_tts_voices": {
+        "Student": "en-GB-SoniaNeural",
+        "Agent": "en-GB-RyanNeural"
+      },
+      "transcript": [
+        { "speaker": "Agent", "text": "Good morning, this is the University Housing Office. How can I help you?" },
+        { "speaker": "Student", "text": "Hi, I've just been offered a place on the business course, and I need to find somewhere to live." },
+        { "speaker": "Agent", "text": "Congratulations. I'll just take down a few details. Can I have your name, please?" },
+        { "speaker": "Student", "text": "Yes, it's Maria Lopez." },
+        { "speaker": "Agent", "text": "And could you spell your surname?" },
+        { "speaker": "Student", "text": "Certainly. L-O-P-E-Z." },
+        { "speaker": "Agent", "text": "Thank you. Now, are you looking for university accommodation, or would you prefer a private rental?" },
+        { "speaker": "Student", "text": "University accommodation, please." },
+        { "speaker": "Agent", "text": "No problem. Do you have a preference for the type of room — a studio flat, a shared apartment, or a family house?" },
+        { "speaker": "Student", "text": "I'd like a studio flat, if that's possible." },
+        { "speaker": "Agent", "text": "A studio flat. That's one hundred and twenty pounds per week." },
+        { "speaker": "Student", "text": "Right, and are bills included in that?" },
+        { "speaker": "Agent", "text": "Yes, water and electricity are included, but the internet is extra — that's ten pounds a month." },
+        { "speaker": "Student", "text": "Okay. What facilities are available?" },
+        { "speaker": "Agent", "text": "There's a shared laundry room on the ground floor, and residents can use the gym in the basement for free." },
+        { "speaker": "Student", "text": "That sounds good. Do I need to pay a deposit?" },
+        { "speaker": "Agent", "text": "Yes, a deposit of two hundred pounds is required to secure the room." },
+        { "speaker": "Student", "text": "And when can I move in?" },
+        { "speaker": "Agent", "text": "From the first of September. I'll email you the contract today." },
+        { "speaker": "Student", "text": "Perfect, thank you for your help." },
+        { "speaker": "Agent", "text": "You're welcome. Goodbye." }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "number": 1,
+          "type": "form_completion",
+          "prompt": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "label": "Student's surname",
+          "answer": "Lopez",
+          "timestamp": "0:18",
+          "excerpt": "Certainly. L-O-P-E-Z."
+        },
+        {
+          "id": "q2",
+          "number": 2,
+          "type": "multiple_choice",
+          "prompt": "Choose the correct letter, A, B or C.",
+          "label": "What type of room does the student request?",
+          "options": [
+            { "key": "A", "text": "Studio flat" },
+            { "key": "B", "text": "Shared apartment" },
+            { "key": "C", "text": "Family house" }
+          ],
+          "answer": "A",
+          "timestamp": "0:55",
+          "excerpt": "I'd like a studio flat, if that's possible."
+        },
+        {
+          "id": "q3",
+          "number": 3,
+          "type": "form_completion",
+          "prompt": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "label": "Weekly rent",
+          "answer": "£120",
+          "timestamp": "1:05",
+          "excerpt": "A studio flat. That's one hundred and twenty pounds per week."
+        },
+        {
+          "id": "q4",
+          "number": 4,
+          "type": "multiple_choice",
+          "prompt": "Choose the correct letter, A, B or C.",
+          "label": "Which facility is free for residents?",
+          "options": [
+            { "key": "A", "text": "Laundry room" },
+            { "key": "B", "text": "Gym" },
+            { "key": "C", "text": "Internet" }
+          ],
+          "answer": "B",
+          "timestamp": "1:30",
+          "excerpt": "There's a shared laundry room on the ground floor, and residents can use the gym in the basement for free."
+        },
+        {
+          "id": "q5",
+          "number": 5,
+          "type": "form_completion",
+          "prompt": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "label": "Deposit required",
+          "answer": "£200",
+          "timestamp": "1:50",
+          "excerpt": "Yes, a deposit of two hundred pounds is required to secure the room."
+        }
+      ]
+    },
+    {
+      "id": "library-membership",
+      "section": 1,
+      "title": "Library Membership Registration",
+      "subtitle": "Section 1 — a conversation between a student, Daniel, and a university librarian about registering for a library membership.",
+      "instructions": "You will hear a conversation between a student and a university librarian. Answer questions 1-5 as you listen. The recording is played only once.",
+      "expected_duration_seconds": 75,
+      "speaker_voices": {
+        "Student": "Kore",
+        "Librarian": "Aoede"
+      },
+      "speakers_config": {
+        "person_a": {
+          "speaker": "Student",
+          "description": "a young male student"
+        },
+        "person_b": {
+          "speaker": "Librarian",
+          "description": "a female university librarian"
+        }
+      },
+      "edge_tts_voices": {
+        "Student": "en-GB-ThomasNeural",
+        "Librarian": "en-GB-SoniaNeural"
+      },
+      "transcript": [
+        { "speaker": "Librarian", "text": "Good afternoon, you've reached the Hillbrook University Library. How can I help you?" },
+        { "speaker": "Student", "text": "Hi, I'm a new student here and I'd like to register for a library membership." },
+        { "speaker": "Librarian", "text": "Of course, that's no problem at all. Could I take your name, please?" },
+        { "speaker": "Student", "text": "Yes, it's Daniel Green." },
+        { "speaker": "Librarian", "text": "Thank you, Daniel. And which course are you studying?" },
+        { "speaker": "Student", "text": "I'm studying environmental science." },
+        { "speaker": "Librarian", "text": "Excellent. The membership fee is forty pounds for the full academic year." },
+        { "speaker": "Student", "text": "And does that let me borrow books straight away?" },
+        { "speaker": "Librarian", "text": "Yes, it does. As a standard member you can borrow up to twelve books at one time." },
+        { "speaker": "Student", "text": "That's a lot. And how long can I keep them?" },
+        { "speaker": "Librarian", "text": "Books are due back after four weeks, and you can renew them online twice before they are overdue." },
+        { "speaker": "Student", "text": "Great. When does registration close?" },
+        { "speaker": "Librarian", "text": "Registration closes on the thirty-first of October, so you have plenty of time." },
+        { "speaker": "Student", "text": "Perfect, thank you very much." },
+        { "speaker": "Librarian", "text": "You're welcome. I'll send you the membership form by email today." }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "number": 1,
+          "type": "form_completion",
+          "prompt": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "label": "Course of study",
+          "answer": "environmental science",
+          "timestamp": "0:25",
+          "excerpt": "I'm studying environmental science."
+        },
+        {
+          "id": "q2",
+          "number": 2,
+          "type": "form_completion",
+          "prompt": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "label": "Membership fee",
+          "answer": "£40",
+          "timestamp": "0:40",
+          "excerpt": "The membership fee is forty pounds for the full academic year."
+        },
+        {
+          "id": "q3",
+          "number": 3,
+          "type": "multiple_choice",
+          "prompt": "Choose the correct letter, A, B or C.",
+          "label": "How many books can a standard member borrow at one time?",
+          "options": [
+            { "key": "A", "text": "6" },
+            { "key": "B", "text": "10" },
+            { "key": "C", "text": "12" }
+          ],
+          "answer": "C",
+          "timestamp": "0:55",
+          "excerpt": "Yes, it does. As a standard member you can borrow up to twelve books at one time."
+        },
+        {
+          "id": "q4",
+          "number": 4,
+          "type": "multiple_choice",
+          "prompt": "Choose the correct letter, A, B or C.",
+          "label": "How long can books be borrowed before they are due?",
+          "options": [
+            { "key": "A", "text": "Two weeks" },
+            { "key": "B", "text": "Four weeks" },
+            { "key": "C", "text": "Six weeks" }
+          ],
+          "answer": "B",
+          "timestamp": "1:05",
+          "excerpt": "Books are due back after four weeks, and you can renew them online twice before they are overdue."
+        },
+        {
+          "id": "q5",
+          "number": 5,
+          "type": "form_completion",
+          "prompt": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "label": "Registration closes on",
+          "answer": "31 October",
+          "timestamp": "1:20",
+          "excerpt": "Registration closes on the thirty-first of October, so you have plenty of time."
+        }
+      ]
+    },
+    {
+      "id": "campus-tour",
+      "section": 2,
+      "title": "Campus Tour Booking / Welcome Centre Enquiry",
+      "subtitle": "Section 2 — a conversation between a visitor, Emma, and a tour guide at the campus Welcome Centre about booking a place on a campus tour.",
+      "instructions": "You will hear a conversation between a visitor and a tour guide at the campus Welcome Centre. Answer questions 1-5 as you listen. The recording is played only once.",
+      "expected_duration_seconds": 80,
+      "speaker_voices": {
+        "Visitor": "Aoede",
+        "Tour Guide": "Kore"
+      },
+      "speakers_config": {
+        "person_a": {
+          "speaker": "Visitor",
+          "description": "a young female visitor"
+        },
+        "person_b": {
+          "speaker": "Tour Guide",
+          "description": "a male tour guide"
+        }
+      },
+      "edge_tts_voices": {
+        "Visitor": "en-GB-SoniaNeural",
+        "Tour Guide": "en-GB-RyanNeural"
+      },
+      "transcript": [
+        { "speaker": "Tour Guide", "text": "Good morning, you've reached the Riverside Campus Welcome Centre. How can I help you?" },
+        { "speaker": "Visitor", "text": "Hello, I'd like to book a place on next week's campus tour, please." },
+        { "speaker": "Tour Guide", "text": "Certainly. The tours run every weekday, so which day would suit you?" },
+        { "speaker": "Visitor", "text": "Next Tuesday, if that's possible." },
+        { "speaker": "Tour Guide", "text": "Tuesday is fine. The tour starts at half past nine in the morning and lasts about two hours." },
+        { "speaker": "Visitor", "text": "And how many people normally go on each tour?" },
+        { "speaker": "Tour Guide", "text": "We keep the group size to a maximum of fifteen so that everyone can hear clearly." },
+        { "speaker": "Visitor", "text": "Great. And where do we meet?" },
+        { "speaker": "Tour Guide", "text": "Please meet at the main entrance, just outside the library. Your guide will be holding a blue flag." },
+        { "speaker": "Visitor", "text": "Perfect. Do I need to book online before I arrive?" },
+        { "speaker": "Tour Guide", "text": "Yes, bookings close at five o'clock on the day before the tour. I'll email you a confirmation now." },
+        { "speaker": "Visitor", "text": "Thank you so much for your help." },
+        { "speaker": "Tour Guide", "text": "You're welcome. We look forward to seeing you on Tuesday." }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "number": 1,
+          "type": "form_completion",
+          "prompt": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "label": "Tour day",
+          "answer": "Tuesday",
+          "timestamp": "0:20",
+          "excerpt": "Next Tuesday, if that's possible."
+        },
+        {
+          "id": "q2",
+          "number": 2,
+          "type": "form_completion",
+          "prompt": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "label": "Start time",
+          "answer": "9:30",
+          "timestamp": "0:35",
+          "excerpt": "The tour starts at half past nine in the morning and lasts about two hours."
+        },
+        {
+          "id": "q3",
+          "number": 3,
+          "type": "multiple_choice",
+          "prompt": "Choose the correct letter, A, B or C.",
+          "label": "What is the maximum group size?",
+          "options": [
+            { "key": "A", "text": "10" },
+            { "key": "B", "text": "12" },
+            { "key": "C", "text": "15" }
+          ],
+          "answer": "C",
+          "timestamp": "0:50",
+          "excerpt": "We keep the group size to a maximum of fifteen so that everyone can hear clearly."
+        },
+        {
+          "id": "q4",
+          "number": 4,
+          "type": "multiple_choice",
+          "prompt": "Choose the correct letter, A, B or C.",
+          "label": "Where do tour members meet?",
+          "options": [
+            { "key": "A", "text": "Inside the library" },
+            { "key": "B", "text": "At the main entrance" },
+            { "key": "C", "text": "In the car park" }
+          ],
+          "answer": "B",
+          "timestamp": "1:05",
+          "excerpt": "Please meet at the main entrance, just outside the library."
+        },
+        {
+          "id": "q5",
+          "number": 5,
+          "type": "form_completion",
+          "prompt": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "label": "Bookings close at",
+          "answer": "5 p.m.",
+          "timestamp": "1:20",
+          "excerpt": "Yes, bookings close at five o'clock on the day before the tour."
+        }
+      ]
+    }
+  ]
+}
