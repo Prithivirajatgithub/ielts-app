@@ -203,7 +203,7 @@ export default function SpeakingPracticePage() {
       formData.append("topic", activeCard.title);
 
       const res = await fetch(
-        "http://127.0.0.1:8000/api/v1/evaluate-speaking",
+        `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/api/v1/evaluate-speaking`,
         { method: "POST", body: formData },
       );
 
